@@ -153,21 +153,31 @@ class PyroPLSMInference:
     def dump_motifs_and_starting_times(self, motifs_starting_times, motifs):
         pzd = motifs_starting_times.sum(axis=3)
         pzd /= pzd.sum(axis=1, keepdims=True)
-        np.savetxt('./data/results.pzd', pzd.squeeze().transpose())
+        pzd = pzd.squeeze().transpose()
 
-        motifs_starting_times /= motifs_starting_times.sum(axis=3, keepdims=True)
-        np.savetxt('./data/results.ptszd', np.stack([motifs_starting_times[i, :, 0].transpose() for i in
-                                                     range(self.documents_number)
-                                                     ]).reshape(-1, self.latent_motifs_number))
+        ptszd = motifs_starting_times
+        ptszd /= ptszd.sum(axis=3, keepdims=True)
+        ptszd = np.stack([ptszd[i, :, 0].transpose() for i in range(self.documents_number)]).reshape(
+            -1, self.latent_motifs_number)
 
         pwz = motifs.sum(axis=3)
         pwz /= pwz.sum(axis=2, keepdims=True)
-        np.savetxt('./data/results.pwz', pwz.squeeze().transpose())
+        pwz = pwz.squeeze().transpose()
 
-        motifs /= motifs.sum(axis=3, keepdims=True)
-        np.savetxt('./data/results.ptrwz', np.stack([motifs[i, 0].transpose() for i in range(self.latent_motifs_number)
-                                                     ]).reshape(-1, self.words_number))
-        motifs.sum(axis=3)
+        ptrwz = motifs
+        ptrwz /= ptrwz.sum(axis=3, keepdims=True)
+        ptrwz = np.stack([ptrwz[i, 0].transpose() for i in range(self.latent_motifs_number)]).reshape(
+            -1, self.words_number)
+
+        pzd_file_path = os.path.join(self.work_dir, 'results.pzd')
+        ptszd_file_path = os.path.join(self.work_dir, 'results.ptszd')
+        pwz_file_path = os.path.join(self.work_dir, 'results.pwz')
+        ptrwz_file_path = os.path.join(self.work_dir, 'results.ptrwz')
+
+        np.savetxt(pzd_file_path, pzd)
+        np.savetxt(ptszd_file_path, ptszd)
+        np.savetxt(pwz_file_path, pwz)
+        np.savetxt(ptrwz_file_path, ptrwz)
 
 
 def main():
