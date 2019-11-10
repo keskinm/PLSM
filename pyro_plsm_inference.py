@@ -87,13 +87,13 @@ class PyroPLSMInference:
         motifs_starting_times = pyro.sample("motifs_starting_times", pdist.Dirichlet(
             concentration=motifs_starting_times_concentration.view(self.documents_number, -1)))
         motifs = pyro.sample("motifs", pdist.Dirichlet(
-            concentration=motifs_concentration.view(self.documents_number, -1)))
+            concentration=motifs_concentration.view(self.latent_motifs_number, -1)))
 
         # ADD: resize motifs_starting_times and motifs
         motifs_starting_times = motifs_starting_times.reshape(*motifs_starting_times_shape)
         motifs = motifs.reshape(*motifs_shape)
 
-        with pyro.plate("data", 358300, subsample_size=100):
+        with pyro.plate("data", len(data), subsample_size=100):
             # CHANGE: make explicit the fact that the number of observation is unused here
             pyro.sample("observe", pdist.Multinomial(-999, probs=self.p_w_ta_d(motifs_starting_times, motifs)),
                         obs=data)
