@@ -154,15 +154,16 @@ class PyroPLSMInference:
         pzd = motifs_starting_times.sum(axis=3)
         pzd /= pzd.sum(axis=1, keepdims=True)
         np.savetxt('./data/results.pzd', pzd.squeeze().transpose())
+
         motifs_starting_times /= motifs_starting_times.sum(axis=3, keepdims=True)
-        np.savetxt('./data/results.ptszd', np.stack([motifs_starting_times[i, :, 0].transpose() for i in range(self.documents_number)
+        np.savetxt('./data/results.ptszd', np.stack([motifs_starting_times[i, :, 0].transpose() for i in
+                                                     range(self.documents_number)
                                                      ]).reshape(-1, self.latent_motifs_number))
 
-        np.load(motifs_file_path).sum(axis=3).sum()
-        motifs = np.load(motifs_file_path)
         pwz = motifs.sum(axis=3)
         pwz /= pwz.sum(axis=2, keepdims=True)
         np.savetxt('./data/results.pwz', pwz.squeeze().transpose())
+
         motifs /= motifs.sum(axis=3, keepdims=True)
         np.savetxt('./data/results.ptrwz', np.stack([motifs[i, 0].transpose() for i in range(self.latent_motifs_number)
                                                      ]).reshape(-1, self.words_number))
