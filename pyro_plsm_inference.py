@@ -19,7 +19,7 @@ plt.rc('figure', figsize=(12.0, 7.0))
 
 class PyroPLSMInference:
     def __init__(self, documents_number, relative_time_length, words_number, documents_length, latent_motifs_number,
-                 n_steps, lr, observations_file_path, work_dir, seed, plot_results):
+                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples):
         self.documents_number = documents_number
         self.relative_time_length = relative_time_length
         self.words_number = words_number
@@ -31,6 +31,7 @@ class PyroPLSMInference:
         self.adjusted_documents_length = documents_length - relative_time_length + 1
         self.work_dir = work_dir
         self.plot_results = plot_results if plot_results is not None else None
+        self.n_samples = n_samples
         os.makedirs(work_dir, exist_ok=True)
         torch.manual_seed(seed)
 
@@ -92,7 +93,7 @@ class PyroPLSMInference:
         motifs_starting_times = motifs_starting_times.reshape(*motifs_starting_times_shape)
         motifs = motifs.reshape(*motifs_shape)
 
-        with pyro.plate("data", 360200, subsample_size=100):
+        with pyro.plate("data", 358300, subsample_size=100):
             # CHANGE: make explicit the fact that the number of observation is unused here
             pyro.sample("observe", pdist.Multinomial(-999, probs=self.p_w_ta_d(motifs_starting_times, motifs)),
                         obs=data)
@@ -121,7 +122,7 @@ class PyroPLSMInference:
         adam_params = {"lr": 0.1, "betas": (0.9, 0.999)}
         optimizer = pyro.optim.Adam(adam_params)
 
-        svi = SVI(self.model, self.guide, optimizer, loss=Trace_ELBO())
+        svi = SVI(self.model, self.guide, optimizer, loss=Trace_ELBO(), num_samples=self.n_samples)
 
         for _ in tqdm(range(self.n_steps)):
             svi.step(data)
@@ -213,6 +214,14 @@ def main():
         default=400,
         help=
         'number of steps for inference'
+    )
+
+    parser.add_argument(
+        '--n-samples',
+        type=int,
+        default=10,
+        help=
+        'number of samples to use for inference'
     )
 
     parser.add_argument(
