@@ -136,7 +136,7 @@ class PyroPLSMInference:
         np.save(file=motifs_starting_times_file_path, arr=motifs_starting_times)
         np.save(file=motifs_file_path, arr=motifs)
 
-        self.dump_motifs_and_starting_times()
+        self.dump_motifs_and_starting_times(motifs_starting_times, motifs)
 
         if self.plot_results:
             self.plot_motifs_and_starting_times(motifs)
@@ -150,12 +150,7 @@ class PyroPLSMInference:
             print(motif.sum())
             plt.show()
 
-    def dump_motifs_and_starting_times(self):
-        # ADD: quick plot before exhaustive plot
-        motifs_starting_times_file_path = "./data/motifs_starting_times.npy"
-        motifs_file_path = "./data/motifs.npy"
-
-        motifs_starting_times = np.load(motifs_starting_times_file_path)
+    def dump_motifs_and_starting_times(self, motifs_starting_times, motifs):
         pzd = motifs_starting_times.sum(axis=3)
         pzd /= pzd.sum(axis=1, keepdims=True)
         np.savetxt('./data/results.pzd', pzd.squeeze().transpose())
