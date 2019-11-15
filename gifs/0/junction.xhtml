@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <title>./data/gifs/0/junction</title>
+        <script  type="text/javascript"><![CDATA[
+function sortBy(what, attr, reverse) {
+    var parent = document.getElementById(what);
+    var items = parent.childNodes;
+    var itemsArr = [];
+    for (var i in items) {
+        if (items[i].nodeType == 1) { // get rid of the whitespace text nodes
+            itemsArr.push(items[i]);
+        }
+    }
+    itemsArr.sort(function(a, b) {
+        var aa = a.getAttribute(attr) * 1.; // for numeric sorting (* 1.)
+        var bb = b.getAttribute(attr) * 1.;
+        return aa == bb ? 0 : (aa>bb ^ reverse ? 1 : -1);
+    });
+    for (i = 0; i < itemsArr.length; ++i) {
+        parent.appendChild(itemsArr[i]);
+        parent.appendChild(document.createTextNode(" "));
+    }
+}
+function togglePngGif(o) {
+    if (/[.]gif$/.test(o.src)) {
+        o.src = o.src.replace('.gif', '-magic.png');
+    } else {
+        o.src = o.src.replace('-magic.png', '.gif');
+    }
+}
+
+        ]]></script>
+    </head>
+    <body onload="if (document.getElementById('cb').checked) sortBy('images','pz',true); else sortBy('images','topic');">
+        <input type="checkbox"  checked="true" id="cb" onchange="if (this.checked) sortBy('images','pz',true); else sortBy('images','topic');"/>
+        <label for="cb">Sort by P(z)</label>
+        <div id="images">
+        <img onclick="togglePngGif(this)" src="junction-000-magic.png" alt="wip?" title="#0: p(z) = 0.1336" pz="0.1335800141096115" topic="000" cumulatedZ="0.1335800141096115"/>
+        <img onclick="togglePngGif(this)" src="junction-001-magic.png" alt="wip?" title="#1: p(z) = 0.1833" pz="0.18333736062049866" topic="001" cumulatedZ="0.31691737473011017"/>
+        <img onclick="togglePngGif(this)" src="junction-002-magic.png" alt="wip?" title="#2: p(z) = 0.2044" pz="0.20438040792942047" topic="002" cumulatedZ="0.5212977826595306"/>
+        <img onclick="togglePngGif(this)" src="junction-003-magic.png" alt="wip?" title="#3: p(z) = 0.1634" pz="0.1634083241224289" topic="003" cumulatedZ="0.6847061067819595"/>
+        <img onclick="togglePngGif(this)" src="junction-004-magic.png" alt="wip?" title="#4: p(z) = 0.3153" pz="0.31529393792152405" topic="004" cumulatedZ="1.0000000447034836"/>
+
+        </div>
+    </body>
+</html>
+
