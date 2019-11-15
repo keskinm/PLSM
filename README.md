@@ -16,7 +16,7 @@ Example:
 `python -m pyro_plsm_inference --n-steps 400`
 
 
-
+```
     parser.add_argument(
         '--documents-number',
         type=int,
@@ -91,6 +91,7 @@ Example:
 
     parser.add_argument(
         '--plot-results', action='store_true', help='plot motifs and their starting times')
+```
 
 ## Draw motifs on image with bundle script:
 
