@@ -93,6 +93,7 @@ Example:
         '--plot-results', action='store_true', help='plot motifs and their starting times')
 ```
 
+
 ## Draw motifs on image with bundle script:
 
 [Bundle script tool](https://dl.heeere.com/preacademic-bundle-2013-07-16-17_24_06.tgz)
