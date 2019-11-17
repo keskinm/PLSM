@@ -182,48 +182,6 @@ class PyroPLSMInference:
                 cur_col += step
         return init_motif
 
-#java -jar sequence-mining/target/sequence-mining-1.0.jar -i 100 -f /home/keskin/PycharmProjects/PLSM/mutu_data/ism_data.dat -v
-    def save_ism_data(self, data):
-        nz = self.latent_motifs_number
-        nw = self.words_number
-        ntr = self.relative_time_length
-        nd = self.documents_number
-        Td = self.adjusted_documents_length
-
-        # Consider about the time. Assign each square in the motif a number ranging from 1 to nw*ntr
-        ism_data = data.reshape(-1, Td + ntr - 1).cpu().numpy()
-        tem_data = np.zeros((ism_data.shape[0], 3))
-        ism_data = np.concatenate((ism_data, tem_data), axis=1)
-        ism_seq = []
-        step = 20
-        for i in range(nd):
-            cur_col = 0
-            start_raw = i * nw
-            while cur_col < (ism_data.shape[1] - ntr + 1):
-                # During the process, using matrix to simplify the calculation
-                # Choose all sqaures in the cur_window(Moving the window to generate the sequence)
-                # pick its corresponding index in motif(1~nw*ntr)
-                tem_index_pos = []
-                tem_seq = []
-                cur_window = ism_data[start_raw:start_raw + nw, cur_col:cur_col + ntr]
-                cmp_mat = np.ones((nw, ntr))
-                pos_mat = np.arange(nw * ntr).reshape(nw, ntr)
-                tem_seq = pos_mat * (cur_window > cmp_mat)
-                tem_seq = tem_seq.reshape(-1, nw * ntr)[0]
-                tem_index_pos = np.array(np.where(tem_seq > 0))
-                tem_index_pos = tem_index_pos + 1
-                ism_seq.append(tem_index_pos)
-
-                cur_col += step
-        with open("./mutu_data/ism_data.dat", "w") as file:
-            file.truncate()
-            for i in range(len(ism_seq)):
-                if len(ism_seq[i][0]) != 0:
-                    tem_str = ism_seq[i][0].astype(int).astype(str).tolist()
-                    file.write(" -1 ".join(tem_str))
-                    file.write(' -2\n')
-        file.close()
-
     def initialize_motifs(self, data, seq):
         nz = self.latent_motifs_number
         nw = self.words_number
