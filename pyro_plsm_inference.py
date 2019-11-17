@@ -19,7 +19,7 @@ plt.rc('figure', figsize=(12.0, 7.0))
 
 class PyroPLSMInference:
     def __init__(self, documents_number, relative_time_length, words_number, documents_length, latent_motifs_number,
-                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, ism=True):
+                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, use_ism=True):
         self.documents_number = documents_number
         self.relative_time_length = relative_time_length
         self.words_number = words_number
@@ -120,8 +120,8 @@ class PyroPLSMInference:
 
         seq = self.format_seq('./mutu_data/seq.txt')
 
-        self.initalized_motifs = self.initialize_motifs(data, seq) if self.ism else torch.ones(self.latent_motifs_number, 1, self.words_number,
-                                                     self.relative_time_length)
+        self.initalized_motifs = self.initialize_motifs(data, seq) if self.use_ism else torch.ones(self.latent_motifs_number, 1, self.words_number,
+                                                                                                   self.relative_time_length)
 
         pyro.clear_param_store()
 
