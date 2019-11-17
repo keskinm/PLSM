@@ -12,7 +12,7 @@ from tqdm import tqdm
 import os
 import argparse
 from utils.parser import parse_tdoc_file
-
+from ism.utils import format_seq_file
 
 # ADD: change figure size
 plt.rc('figure', figsize=(12.0, 7.0))
@@ -100,7 +100,7 @@ class PyroPLSMInference:
         data = torch.tensor(parse_tdoc_file(self.observations_file_path, self.documents_length,
                                                  self.words_number), dtype=torch.float32).view(-1)
 
-        seq = self.format_seq('./mutu_data/seq.txt')
+        seq = format_seq_file('./mutu_data/seq.txt')
 
         self.initalized_motifs = self.initialize_motifs(data, seq) if self.use_ism else torch.ones(self.latent_motifs_number, 1, self.words_number,
                                                                                                    self.relative_time_length)
@@ -151,27 +151,6 @@ class PyroPLSMInference:
         cor.append(raw_index)
         cor.append(col_index)
         return cor
-
-    def format_seq(self, seq_file_path):
-        seq_file = open(seq_file_path, "r")
-        contents = seq_file.read()
-        seq_file.close()
-
-        contents = contents.split(',')
-
-        new_contents = []
-
-        for content in contents:
-            stop_idx = content.find(']')
-            new_contents.append(content[:stop_idx+1])
-
-        filtered_contents = list(filter(lambda x: len(x) != 0, new_contents))
-
-        filtered_contents = [int(content[1:-1]) for content in filtered_contents]
-
-        filtered_contents = [filtered_contents]
-
-        return filtered_contents
 
     def compute_motif_initialization(self, data, seq):
         nz = self.latent_motifs_number
