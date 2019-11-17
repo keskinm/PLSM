@@ -245,7 +245,7 @@ def initialize_motif():
             cur_col += step
     return init_motif
 
-init_motif = np.ones((nz,1,nw,ntr))
+
 init_motif = initialize_motif()
 init_motif = torch.from_numpy(init_motif).cpu()
 init_motif = init_motif.type_as(torch.ones(nd,nz,1,Td).cpu())
@@ -255,13 +255,6 @@ def p_w_ta_d(z, motifs):
     t = F.conv_transpose2d(z, motifs)
     return t.view(-1)
 
-
-# ADD: introduce some variables
-prior0 = 0.1 * N / nd / nz / Td
-prior1 = 0.1 * N / nz / nw / ntr
-
-
-# randinit = 0
 
 def model(data):
     s0 = (nd, nz, 1, Td)
@@ -350,18 +343,6 @@ for i in range(nz):
     # plt.show()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 def cal_KL():
     KL = []
     infer_motif0 = loaded[0,0,:,:]
@@ -413,25 +394,12 @@ def cal_median_KL(infer_motif):
     return mean_KL
 
 
-
-
-
-
-
-
-
-
 final_data = []
 for i in range(len(tem_motif)):
     tem = tem_motif[i]
     tem = tem.cpu().detach().numpy()
     tem_rec = cal_median_KL(tem)
     final_data.append(tem_rec.item())
-
-
-
-
-
 
 
 print(final_data)
