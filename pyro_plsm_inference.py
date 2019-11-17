@@ -19,7 +19,7 @@ plt.rc('figure', figsize=(12.0, 7.0))
 
 class PyroPLSMInference:
     def __init__(self, documents_number, relative_time_length, words_number, documents_length, latent_motifs_number,
-                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples):
+                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, ism=True):
         self.documents_number = documents_number
         self.relative_time_length = relative_time_length
         self.words_number = words_number
@@ -35,6 +35,8 @@ class PyroPLSMInference:
         os.makedirs(work_dir, exist_ok=True)
         torch.manual_seed(seed)
 
+        self.initalized_motifs = None
+        self.ism = ism if ism is not None else None
         # prior0 = 0.1*N/nd / nz / Td
         # prior1 = 0.1*N/nz / nw / ntr
         # randinit = 0
@@ -104,8 +106,7 @@ class PyroPLSMInference:
                                                                                    self.adjusted_documents_length),
                                              constraint=constraints.positive)
 
-        q_motifs = pyro.param("q_motifs", torch.ones(self.latent_motifs_number, 1, self.words_number,
-                                                     self.relative_time_length), constraint=constraints.positive)
+        q_motifs = pyro.param("q_motifs", self.initalized_motifs, constraint=constraints.positive)
 
         # CHANGE: use the fact that dirichlet can draw independant dirichlets
         pyro.sample("motifs_starting_times", pdist.Dirichlet(
@@ -116,6 +117,9 @@ class PyroPLSMInference:
     def run_inference(self):
         data = torch.tensor(self.parse_tdoc_file(self.observations_file_path, self.documents_length,
                                                  self.words_number), dtype=torch.float32).view(-1)
+
+        self.initalized_motifs = self.initialize_motifs(data) if self.ism else torch.ones(self.latent_motifs_number, 1, self.words_number,
+                                                     self.relative_time_length)
 
         pyro.clear_param_store()
 
@@ -149,6 +153,58 @@ class PyroPLSMInference:
             plt.imshow(motif.squeeze())
             print(motif.sum())
             plt.show()
+
+    def return_col_raw(self, num):
+        ntr = self.relative_time_length
+        cor = []
+        col_index = num % ntr
+        if col_index == 0:
+            col_index = ntr - 1
+            raw_index = int(num / ntr) - 1
+        else:
+            col_index = col_index - 1
+            raw_index = int(num / ntr)
+        cor.append(raw_index)
+        cor.append(col_index)
+        return cor
+
+    def compute_motif_initialization(self, data):
+        nz = self.latent_motifs_number
+        nw = self.words_number
+        ntr = self.relative_time_length
+        nd = self.documents_number
+        Td = self.adjusted_documents_length
+        non_num_data = data.reshape(-1, Td+ntr-1).cpu().numpy()
+        seq = [[247, 272, 295, 297, 342], [366], [275, 300]]
+
+        init_motif = np.ones((nz, 1, nw, ntr))
+        step = 100
+        for i in range(nd):
+            cur_raw = i * nw
+            cur_col = 0
+            while cur_col <= (non_num_data.shape[1] - ntr + 1):
+                tem_data = data[cur_raw:cur_raw + nw, cur_col:cur_col + ntr]
+                for i in range(len(seq)):
+                    tem_seq = seq[i]
+                    cur_motif = init_motif[i, 0, :, :]
+                    for sub_seq in tem_seq:
+                        tem_cor = self.return_col_raw(sub_seq)
+                        cur_motif[tem_cor[0], tem_cor[1]] += tem_data[tem_cor[0], tem_cor[1]]
+                    init_motif[i, 0, :, :] = cur_motif
+                cur_col += step
+        return init_motif
+
+    def initialize_motifs(self, data):
+        nz = self.latent_motifs_number
+        nw = self.words_number
+        ntr = self.relative_time_length
+        nd = self.documents_number
+        Td = self.adjusted_documents_length
+
+        init_motif = self.compute_motif_initialization(data)
+        init_motif = torch.from_numpy(init_motif).cpu()
+        init_motif = init_motif.type_as(torch.ones(nd, nz, 1, Td).cpu())
+        return init_motif
 
     def dump_motifs_and_starting_times(self, motifs_starting_times, motifs):
         pzd = motifs_starting_times.sum(axis=3)
