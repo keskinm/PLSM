@@ -174,7 +174,12 @@ class PyroPLSMInference:
         ntr = self.relative_time_length
         nd = self.documents_number
         Td = self.adjusted_documents_length
-        non_num_data = data.reshape(-1, Td+ntr-1).cpu().numpy()
+        ism_data = data.reshape(-1, Td + ntr - 1).cpu().numpy()
+        original_data = data.reshape(nw*nd,ntr+Td-1).cpu().numpy()
+
+        non_num_data = ism_data
+        for i in range(ism_data.shape[0]):
+            non_num_data[i, :] = np.where(ism_data[i, :] > 0, i + 1 if i < 20 else i - 19, 0)
         seq = [[247, 272, 295, 297, 342], [366], [275, 300]]
 
         init_motif = np.ones((nz, 1, nw, ntr))
@@ -183,7 +188,7 @@ class PyroPLSMInference:
             cur_raw = i * nw
             cur_col = 0
             while cur_col <= (non_num_data.shape[1] - ntr + 1):
-                tem_data = data[cur_raw:cur_raw + nw, cur_col:cur_col + ntr]
+                tem_data = original_data[cur_raw:cur_raw + nw, cur_col:cur_col + ntr]
                 for i in range(len(seq)):
                     tem_seq = seq[i]
                     cur_motif = init_motif[i, 0, :, :]
