@@ -312,6 +312,46 @@ class PyroPLSMInference:
         np.savetxt(pwz_file_path, pwz)
         np.savetxt(ptrwz_file_path, ptrwz)
 
+    def cal_median_KL(self, infered_motifs, labeled_motifs):
+        nz = self.latent_motifs_number
+        nw = self.words_number
+        ntr = self.relative_time_length
+
+        KL = []
+        infered_motif0 = infered_motifs[0, 0, :, :]
+        infered_motif1 = infered_motifs[1, 0, :, :]
+        infered_motif2 = infered_motifs[2, 0, :, :]
+        norm_infer_motif0 = infered_motif1 / infered_motif1.sum()
+        norm_infer_motif1 = infered_motif2 / infered_motif2.sum()
+        norm_infer_motif2 = infered_motif0 / infered_motif0.sum()
+        normalizer = 0
+        for n in range(nz):
+            temKL = 0
+            real_motif = labeled_motifs[n, 0, :, :].cpu()
+            norm_real_motif = real_motif / real_motif.sum()
+            for i in range(nw):
+                for j in range(ntr):
+                    if norm_real_motif[i, j] == 0:
+                        temKL += 0
+                    else:
+                        normalizer += norm_real_motif[i, j] + locals()['norm_infer_motif' + str(n)][i, j]
+                        temKL += norm_real_motif[i, j] * (
+                            np.log(norm_real_motif[i, j] / locals()['norm_infer_motif' + str(n)][i, j]))
+            temKL = temKL / normalizer
+            KL.append(temKL)
+        mean_KL = np.sum(KL) / nz
+        print(mean_KL)
+        return mean_KL
+
+    def compute_metrics(self, labeled_motifs):
+        metrics = []
+        for i in range(len(self.motifs_list_for_metrics)):
+            motif_at_given_step = self.motifs_list_for_metrics[i]
+            motif_at_given_step = motif_at_given_step.cpu().detach().numpy()
+            median_kl = self.cal_median_KL(motif_at_given_step, labeled_motifs)
+            metrics.append(median_kl.item())
+        return metrics
+
 
 def main():
     parser = argparse.ArgumentParser(prog='pyro_inference')
