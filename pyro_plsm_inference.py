@@ -118,7 +118,9 @@ class PyroPLSMInference:
         data = torch.tensor(self.parse_tdoc_file(self.observations_file_path, self.documents_length,
                                                  self.words_number), dtype=torch.float32).view(-1)
 
-        self.initalized_motifs = self.initialize_motifs(data) if self.ism else torch.ones(self.latent_motifs_number, 1, self.words_number,
+        seq = self.format_seq('./mutu_data/seq.txt')
+
+        self.initalized_motifs = self.initialize_motifs(data, seq) if self.ism else torch.ones(self.latent_motifs_number, 1, self.words_number,
                                                      self.relative_time_length)
 
         pyro.clear_param_store()
@@ -168,7 +170,28 @@ class PyroPLSMInference:
         cor.append(col_index)
         return cor
 
-    def compute_motif_initialization(self, data):
+    def format_seq(self, seq_file_path):
+        seq_file = open(seq_file_path, "r")
+        contents = seq_file.read()
+        seq_file.close()
+
+        contents = contents.split(',')
+
+        new_contents = []
+
+        for content in contents:
+            stop_idx = content.find(']')
+            new_contents.append(content[:stop_idx+1])
+
+        filtered_contents = list(filter(lambda x: len(x) != 0, new_contents))
+
+        filtered_contents = [int(content[1:-1]) for content in filtered_contents]
+
+        filtered_contents = [filtered_contents]
+
+        return filtered_contents
+
+    def compute_motif_initialization(self, data, seq):
         nz = self.latent_motifs_number
         nw = self.words_number
         ntr = self.relative_time_length
@@ -180,7 +203,6 @@ class PyroPLSMInference:
         non_num_data = ism_data
         for i in range(ism_data.shape[0]):
             non_num_data[i, :] = np.where(ism_data[i, :] > 0, i + 1 if i < 20 else i - 19, 0)
-        seq = [[247, 272, 295, 297, 342], [366], [275, 300]]
 
         init_motif = np.ones((nz, 1, nw, ntr))
         step = 100
@@ -240,14 +262,14 @@ class PyroPLSMInference:
                     file.write(' -2\n')
         file.close()
 
-    def initialize_motifs(self, data):
+    def initialize_motifs(self, data, seq):
         nz = self.latent_motifs_number
         nw = self.words_number
         ntr = self.relative_time_length
         nd = self.documents_number
         Td = self.adjusted_documents_length
 
-        init_motif = self.compute_motif_initialization(data)
+        init_motif = self.compute_motif_initialization(data, seq)
         init_motif = torch.from_numpy(init_motif).cpu()
         init_motif = init_motif.type_as(torch.ones(nd, nz, 1, Td).cpu())
         return init_motif
