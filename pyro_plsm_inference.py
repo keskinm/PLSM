@@ -13,6 +13,7 @@ import os
 import argparse
 from utils.parser import parse_tdoc_file
 from ism.utils import format_seq_file
+from ism.ism import IsmHandler
 
 # ADD: change figure size
 plt.rc('figure', figsize=(12.0, 7.0))
@@ -20,7 +21,7 @@ plt.rc('figure', figsize=(12.0, 7.0))
 
 class PyroPLSMInference:
     def __init__(self, documents_number, relative_time_length, words_number, documents_length, latent_motifs_number,
-                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, use_ism):
+                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, use_ism, create_ism_data_file):
         self.documents_number = documents_number
         self.relative_time_length = relative_time_length
         self.words_number = words_number
@@ -39,9 +40,15 @@ class PyroPLSMInference:
         self.initalized_motifs = None
         self.use_ism = use_ism if use_ism is not None else None
 
+        if self.use_ism:
+            self.ism = IsmHandler(documents_number=documents_number, relative_time_length=relative_time_length, words_number=words_number, documents_length=documents_length, latent_motifs_number=latent_motifs_number,
+                 adjusted_documents_length=self.adjusted_documents_length)
+
         self.step_motif_count = 0
         self.step_motif_count_divisor = 5
         self.motifs_list_for_metrics = []
+
+        self.create_ism_data_file = create_ism_data_file
 
         # prior0 = 0.1*N/nd / nz / Td
         # prior1 = 0.1*N/nz / nw / ntr
@@ -100,10 +107,15 @@ class PyroPLSMInference:
         data = torch.tensor(parse_tdoc_file(self.observations_file_path, self.documents_length,
                                                  self.words_number), dtype=torch.float32).view(-1)
 
-        seq = format_seq_file('./mutu_data/seq.txt')
+        if self.create_ism_data_file:
+            self.ism.save_ism_data(data)
+            return 0
 
-        self.initalized_motifs = self.initialize_motifs(data, seq) if self.use_ism else torch.ones(self.latent_motifs_number, 1, self.words_number,
-                                                                                                   self.relative_time_length)
+        if self.use_ism:
+            seq = format_seq_file('./mutu_data/seq.txt')
+            self.initalized_motifs = self.initialize_motifs(data, seq)
+        else:
+            self.initalized_motifs = torch.ones(self.latent_motifs_number, 1, self.words_number, self.relative_time_length)
 
         pyro.clear_param_store()
 
@@ -344,6 +356,9 @@ def main():
 
     parser.add_argument(
         '--use-ism', action='store_true', help='Use ism for initializing motifs')
+
+    parser.add_argument(
+        '--create-ism-data-file', action='store_true', help='Create ism data file to be used for mining')
 
     args = parser.parse_args()
     args = vars(args)
