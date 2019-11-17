@@ -19,7 +19,7 @@ plt.rc('figure', figsize=(12.0, 7.0))
 
 class PyroPLSMInference:
     def __init__(self, documents_number, relative_time_length, words_number, documents_length, latent_motifs_number,
-                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, use_ism=True):
+                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, use_ism):
         self.documents_number = documents_number
         self.relative_time_length = relative_time_length
         self.words_number = words_number
@@ -430,6 +430,9 @@ def main():
 
     parser.add_argument(
         '--plot-results', action='store_true', help='plot motifs and their starting times')
+
+    parser.add_argument(
+        '--use-ism', action='store_true', help='Use ism for initializing motifs')
 
     args = parser.parse_args()
     args = vars(args)
