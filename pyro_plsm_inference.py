@@ -41,8 +41,11 @@ class PyroPLSMInference:
         self.use_ism = use_ism if use_ism is not None else None
 
         if self.use_ism:
-            self.ism = IsmHandler(documents_number=documents_number, relative_time_length=relative_time_length, words_number=words_number, documents_length=documents_length, latent_motifs_number=latent_motifs_number,
-                 adjusted_documents_length=self.adjusted_documents_length)
+            self.ism = IsmHandler(documents_number=documents_number, relative_time_length=relative_time_length,
+                                  words_number=words_number,
+                                  documents_length=documents_length,
+                                  latent_motifs_number=latent_motifs_number,
+                                  adjusted_documents_length=self.adjusted_documents_length)
 
         self.step_motif_count = 0
         self.step_motif_count_divisor = 5
