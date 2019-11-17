@@ -36,7 +36,12 @@ class PyroPLSMInference:
         torch.manual_seed(seed)
 
         self.initalized_motifs = None
-        self.ism = ism if ism is not None else None
+        self.use_ism = use_ism if use_ism is not None else None
+
+        self.step_motif_count = 0
+        self.step_motif_count_divisor = 5
+        self.motifs_list_for_metrics = []
+
         # prior0 = 0.1*N/nd / nz / Td
         # prior1 = 0.1*N/nz / nw / ntr
         # randinit = 0
@@ -107,6 +112,9 @@ class PyroPLSMInference:
                                              constraint=constraints.positive)
 
         q_motifs = pyro.param("q_motifs", self.initalized_motifs, constraint=constraints.positive)
+
+        if self.step_motif_count % self.step_motif_count_divisor == 0:
+            self.motifs_list_for_metrics.append(q_motifs)
 
         # CHANGE: use the fact that dirichlet can draw independant dirichlets
         pyro.sample("motifs_starting_times", pdist.Dirichlet(
