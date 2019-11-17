@@ -12,7 +12,7 @@ from tqdm import tqdm
 import os
 import argparse
 from utils.parser import parse_tdoc_file
-from ism.utils import format_seq_file
+from ism.ism import format_seq_file
 
 # ADD: change figure size
 plt.rc('figure', figsize=(12.0, 7.0))
