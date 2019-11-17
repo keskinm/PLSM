@@ -113,7 +113,7 @@ class PyroPLSMInference:
 
         if self.use_ism:
             seq = format_seq_file('./mutu_data/seq.txt')
-            self.initalized_motifs = self.initialize_motifs(data, seq)
+            self.initalized_motifs = self.ism.initialize_motifs(data, seq)
         else:
             self.initalized_motifs = torch.ones(self.latent_motifs_number, 1, self.words_number, self.relative_time_length)
 
@@ -149,62 +149,6 @@ class PyroPLSMInference:
             plt.imshow(motif.squeeze())
             print(motif.sum())
             plt.show()
-
-    def return_col_raw(self, num):
-        ntr = self.relative_time_length
-        cor = []
-        col_index = num % ntr
-        if col_index == 0:
-            col_index = ntr - 1
-            raw_index = int(num / ntr) - 1
-        else:
-            col_index = col_index - 1
-            raw_index = int(num / ntr)
-        cor.append(raw_index)
-        cor.append(col_index)
-        return cor
-
-    def compute_motif_initialization(self, data, seq):
-        nz = self.latent_motifs_number
-        nw = self.words_number
-        ntr = self.relative_time_length
-        nd = self.documents_number
-        Td = self.adjusted_documents_length
-        ism_data = data.reshape(-1, Td + ntr - 1).cpu().numpy()
-        original_data = data.reshape(nw*nd,ntr+Td-1).cpu().numpy()
-
-        non_num_data = ism_data
-        for i in range(ism_data.shape[0]):
-            non_num_data[i, :] = np.where(ism_data[i, :] > 0, i + 1 if i < 20 else i - 19, 0)
-
-        init_motif = np.ones((nz, 1, nw, ntr))
-        step = 100
-        for i in range(nd):
-            cur_raw = i * nw
-            cur_col = 0
-            while cur_col <= (non_num_data.shape[1] - ntr + 1):
-                tem_data = original_data[cur_raw:cur_raw + nw, cur_col:cur_col + ntr]
-                for i in range(len(seq)):
-                    tem_seq = seq[i]
-                    cur_motif = init_motif[i, 0, :, :]
-                    for sub_seq in tem_seq:
-                        tem_cor = self.return_col_raw(sub_seq)
-                        cur_motif[tem_cor[0], tem_cor[1]] += tem_data[tem_cor[0], tem_cor[1]]
-                    init_motif[i, 0, :, :] = cur_motif
-                cur_col += step
-        return init_motif
-
-    def initialize_motifs(self, data, seq):
-        nz = self.latent_motifs_number
-        nw = self.words_number
-        ntr = self.relative_time_length
-        nd = self.documents_number
-        Td = self.adjusted_documents_length
-
-        init_motif = self.compute_motif_initialization(data, seq)
-        init_motif = torch.from_numpy(init_motif).cpu()
-        init_motif = init_motif.type_as(torch.ones(nd, nz, 1, Td).cpu())
-        return init_motif
 
     def dump_motifs_and_starting_times(self, motifs_starting_times, motifs):
         pzd = motifs_starting_times.sum(axis=3)
