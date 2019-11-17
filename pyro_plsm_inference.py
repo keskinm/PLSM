@@ -221,6 +221,7 @@ class PyroPLSMInference:
                 cur_col += step
         return init_motif
 
+#java -jar sequence-mining/target/sequence-mining-1.0.jar -i 100 -f /home/keskin/PycharmProjects/PLSM/mutu_data/ism_data.dat -v
     def save_ism_data(self, data):
         nz = self.latent_motifs_number
         nw = self.words_number
