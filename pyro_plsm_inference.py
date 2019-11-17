@@ -11,7 +11,9 @@ import numpy as np
 from tqdm import tqdm
 import os
 import argparse
-
+from utils.parser import parse_tdoc_file
+from ism.utils import format_seq_file
+from ism.ism import IsmHandler
 
 # ADD: change figure size
 plt.rc('figure', figsize=(12.0, 7.0))
@@ -19,7 +21,7 @@ plt.rc('figure', figsize=(12.0, 7.0))
 
 class PyroPLSMInference:
     def __init__(self, documents_number, relative_time_length, words_number, documents_length, latent_motifs_number,
-                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples):
+                 n_steps, lr, observations_file_path, work_dir, seed, plot_results, n_samples, use_ism, create_ism_data_file):
         self.documents_number = documents_number
         self.relative_time_length = relative_time_length
         self.words_number = words_number
@@ -35,36 +37,22 @@ class PyroPLSMInference:
         os.makedirs(work_dir, exist_ok=True)
         torch.manual_seed(seed)
 
+        self.initalized_motifs = None
+        self.use_ism = use_ism if use_ism is not None else None
+
+        if self.use_ism:
+            self.ism = IsmHandler(documents_number=documents_number, relative_time_length=relative_time_length, words_number=words_number, documents_length=documents_length, latent_motifs_number=latent_motifs_number,
+                 adjusted_documents_length=self.adjusted_documents_length)
+
+        self.step_motif_count = 0
+        self.step_motif_count_divisor = 5
+        self.motifs_list_for_metrics = []
+
+        self.create_ism_data_file = create_ism_data_file
+
         # prior0 = 0.1*N/nd / nz / Td
         # prior1 = 0.1*N/nz / nw / ntr
         # randinit = 0
-
-    @staticmethod
-    def parse_tdoc_file(filetdoc, document_length, nw):
-        matrix = [[0 for x in range(document_length)] for x in range(nw)]
-        # np.zeros((documentLength, W))  # Initialize Matrix of length 300x25 with Zeros   ,dtype=np.uint8
-
-        Dict = {}  # Define Dictionary , Index of line position : List (that contain the Values)
-        # Read the file tdoc
-        infile = open(filetdoc, 'r')  # Read the tdoc file
-        i = 0
-        for data in infile:
-            if len(data.strip()) != 0:  # take not empty line in tdoc and make some processing on Data
-                Dict[i] = [data]  # Example Dict[113] = ['12:2 13:3 14:4 15:2 16:1 \n']
-            i += 1
-        infile.close()
-        for j in Dict.keys():
-            x = Dict[j]  # x is the Value in the Dict at Index j
-            y = x[0].split(' ')  # Split at the space to get something like this ['17:1', '\n']
-            for k in range(len(y)):
-                z = y[k].split(':')  # split at : so we get ['17:1']['\n']
-                for m in range(len(z) - 1):
-                    b = int(z[m])  # b is the position of Word W and j is the time , For Example b=17
-                    q = float(z[m + 1])  # q is the value should be filled in the matrix , For example q=1 (at position j,b)
-                    matrix[b][j] = q  # Fill the Matrix with v
-    #                 matrix= np.transpose(matrix)         # To put the Matrix in the correct form
-
-        return np.array(matrix)  # Return the Matrix
 
     @staticmethod
     def p_w_ta_d(motifs_starting_times, motifs):
@@ -104,8 +92,10 @@ class PyroPLSMInference:
                                                                                    self.adjusted_documents_length),
                                              constraint=constraints.positive)
 
-        q_motifs = pyro.param("q_motifs", torch.ones(self.latent_motifs_number, 1, self.words_number,
-                                                     self.relative_time_length), constraint=constraints.positive)
+        q_motifs = pyro.param("q_motifs", self.initalized_motifs, constraint=constraints.positive)
+
+        if self.step_motif_count % self.step_motif_count_divisor == 0:
+            self.motifs_list_for_metrics.append(q_motifs)
 
         # CHANGE: use the fact that dirichlet can draw independant dirichlets
         pyro.sample("motifs_starting_times", pdist.Dirichlet(
@@ -114,8 +104,18 @@ class PyroPLSMInference:
         pyro.sample("motifs", pdist.Dirichlet(concentration=q_motifs.view(self.latent_motifs_number, -1)))
 
     def run_inference(self):
-        data = torch.tensor(self.parse_tdoc_file(self.observations_file_path, self.documents_length,
+        data = torch.tensor(parse_tdoc_file(self.observations_file_path, self.documents_length,
                                                  self.words_number), dtype=torch.float32).view(-1)
+
+        if self.create_ism_data_file:
+            self.ism.save_ism_data(data)
+            return 0
+
+        if self.use_ism:
+            seq = format_seq_file('./mutu_data/seq.txt')
+            self.initalized_motifs = self.ism.initialize_motifs(data, seq)
+        else:
+            self.initalized_motifs = torch.ones(self.latent_motifs_number, 1, self.words_number, self.relative_time_length)
 
         pyro.clear_param_store()
 
@@ -178,6 +178,46 @@ class PyroPLSMInference:
         np.savetxt(ptszd_file_path, ptszd)
         np.savetxt(pwz_file_path, pwz)
         np.savetxt(ptrwz_file_path, ptrwz)
+
+    def cal_median_KL(self, infered_motifs, labeled_motifs):
+        nz = self.latent_motifs_number
+        nw = self.words_number
+        ntr = self.relative_time_length
+
+        KL = []
+        infered_motif0 = infered_motifs[0, 0, :, :]
+        infered_motif1 = infered_motifs[1, 0, :, :]
+        infered_motif2 = infered_motifs[2, 0, :, :]
+        norm_infer_motif0 = infered_motif1 / infered_motif1.sum()
+        norm_infer_motif1 = infered_motif2 / infered_motif2.sum()
+        norm_infer_motif2 = infered_motif0 / infered_motif0.sum()
+        normalizer = 0
+        for n in range(nz):
+            temKL = 0
+            real_motif = labeled_motifs[n, 0, :, :].cpu()
+            norm_real_motif = real_motif / real_motif.sum()
+            for i in range(nw):
+                for j in range(ntr):
+                    if norm_real_motif[i, j] == 0:
+                        temKL += 0
+                    else:
+                        normalizer += norm_real_motif[i, j] + locals()['norm_infer_motif' + str(n)][i, j]
+                        temKL += norm_real_motif[i, j] * (
+                            np.log(norm_real_motif[i, j] / locals()['norm_infer_motif' + str(n)][i, j]))
+            temKL = temKL / normalizer
+            KL.append(temKL)
+        mean_KL = np.sum(KL) / nz
+        print(mean_KL)
+        return mean_KL
+
+    def compute_metrics(self, labeled_motifs):
+        metrics = []
+        for i in range(len(self.motifs_list_for_metrics)):
+            motif_at_given_step = self.motifs_list_for_metrics[i]
+            motif_at_given_step = motif_at_given_step.cpu().detach().numpy()
+            median_kl = self.cal_median_KL(motif_at_given_step, labeled_motifs)
+            metrics.append(median_kl.item())
+        return metrics
 
 
 def main():
@@ -257,6 +297,12 @@ def main():
 
     parser.add_argument(
         '--plot-results', action='store_true', help='plot motifs and their starting times')
+
+    parser.add_argument(
+        '--use-ism', action='store_true', help='Use ism for initializing motifs')
+
+    parser.add_argument(
+        '--create-ism-data-file', action='store_true', help='Create ism data file to be used for mining')
 
     args = parser.parse_args()
     args = vars(args)
