@@ -1,3 +1,5 @@
+import numpy as np
+
 def parse_tdoc_file(filetdoc, document_length, nw):
     matrix = [[0 for x in range(document_length)] for x in range(nw)]
     # np.zeros((documentLength, W))  # Initialize Matrix of length 300x25 with Zeros   ,dtype=np.uint8
