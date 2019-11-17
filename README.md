@@ -2,11 +2,10 @@
 Derivation of the PLSM model, a time-sensitive evolution of Probabilistic Latent Semantic Analysis: [Probabilstic latent sequential motifs](https://pdfs.semanticscholar.org/994c/8fbd9cb8d51356ed22ca93bbfbfb82e36f68.pdf)
 
 
-![](gifs/0/junction-000.gif) 
-![](gifs/0/junction-001.gif)
-![](gifs/0/junction-002.gif)
-![](gifs/0/junction-003.gif)
-
+![](readme/junction-000.gif) 
+![](readme/junction-001.gif)
+![](readme/junction-002.gif)
+![](readme/junction-003.gif)
 
 
 ## Inference with pyro:
