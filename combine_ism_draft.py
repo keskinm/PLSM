@@ -206,11 +206,11 @@ for i in range(ism_data.shape[0]):
 #     [275, 300]
 # seq = [[366],[322],[97]]
 # seq = [[366],[322],[97]]
-seq = [[247, 272, 295, 297, 342],[366],[275, 300]]
-
-original_data = data.reshape(nw*nd,ntr+Td-1).cpu().numpy()
 tem_zero = np.zeros((non_num_data.shape[0], 3))
 non_num_data = np.concatenate((non_num_data, tem_zero), axis=1)
+
+original_data = data.reshape(nw*nd,ntr+Td-1).cpu().numpy()
+seq = [[247, 272, 295, 297, 342],[366],[275, 300]]
 
 
 def return_col_raw(num):
